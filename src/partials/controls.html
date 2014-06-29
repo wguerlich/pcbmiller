@@ -1,0 +1,12 @@
+Controls
+
+Serial interface: <select ng-model="tty_path" ng-options="d.path as d.path for d in devices"></select>
+<button class="btn btn-default" ng-click="open()">open interface</button>
+Load:<input type="file" on-read-file="loadFileContent($fileContent)" />
+Commandline:
+<textarea rows="3" maxlength="10000000" class="form-control" ng-model="commands"></textarea>
+queue: {{ql()}}
+<button class="btn btn-default" ng-click="sendCmd()">send</button>
+<div scroll-glue style="height:400px;overflow-y: scroll">
+<div ng-repeat="ll in logLines track by $index">{{ll}}</div>
+</div>

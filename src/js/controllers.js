@@ -8,7 +8,6 @@ function HomeCtrl($scope, $document) {
     $scope.process = function() {
         var gcm = new GCMachine();
         var inlines = $scope.gcode
-
         gcm.parse(inlines)
 
         var canvas = $document[0].getElementById('board');
@@ -25,14 +24,18 @@ function HomeCtrl($scope, $document) {
         var yoff = height * 0.05 + (height * 0.9 - zoom * gcmheight) / 2
 
 
-        gcm.handler = function(gcm, op) {
-            if (gcm.oldpos.Z > 0)
+        gcm.handler = function(move, op) {
+            //console.log(JSON.stringify(move))
+            
+            if (move.pos.Z > 0)
                 return
-            context.moveTo((gcm.oldpos.X - gcm.minval.X) * zoom + xoff, height - (gcm.oldpos.Y - gcm.minval.Y) * zoom - yoff)
-            context.lineTo((gcm.newpos.X - gcm.minval.X) * zoom + xoff, height - (gcm.newpos.Y - gcm.minval.Y) * zoom - yoff)
+            context.moveTo((move.pos.X - gcm.minval.X) * zoom + xoff, height - (move.pos.Y - gcm.minval.Y) * zoom - yoff)
+            context.lineTo((move.targetpos.X - gcm.minval.X) * zoom + xoff, height - (move.targetpos.Y - gcm.minval.Y) * zoom - yoff)
             context.stroke()
         }
+        gcm.reset()
         gcm.parse(inlines)
+        $scope.outlines=gcm.lines
 
     }
 

@@ -69,7 +69,7 @@ angular.module('main').factory('grbl', function($rootScope) {
         {
             if (lineBuf.length == 0)
                 return
-            if(bufferLines.length>0) return
+            if(bufferLines.length>0) return //for now, we need to send lines one by one
             var space = 127
             for (var i = 0; i < bufferLines.length; i++)
             {

@@ -1,17 +1,20 @@
 {
-  "name": "PCBMiller",
-  "description": "milling PCBs with GRBL",
-  "manifest_version": 2,
-  "version": "0.1",
-  "app": {
-    "background": {
-      "scripts": ["background.js"]
-    }
-  },
-  "icons": { "16": "icon-16.png", "128": "icon-128.png" },
-  "permissions": [
-    "power",
-    "serial",
-    "storage"
-  ]
+    "name": "PCBMiller",
+    "description": "milling PCBs with GRBL",
+    "manifest_version": 2,
+    "version": "0.1",
+    "app": {
+        "background": {
+            "scripts": ["background.js"]
+        }
+    },
+    "icons": {
+        "16": "icon-16.png",
+        "128": "icon-128.png"
+    },
+    "permissions": [
+        "power",
+        "serial",
+        "storage"
+    ]
 }

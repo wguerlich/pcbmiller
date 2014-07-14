@@ -203,6 +203,8 @@ var PathShortener = function(gcm)
     this.gcm = gcm
 }
 
+var margin=0.02
+
 PathShortener.prototype.addMove = function(move)
 {
     var newmove = {targetpos: move.targetpos, pos: move.pos}
@@ -212,7 +214,22 @@ PathShortener.prototype.addMove = function(move)
         newmove.pos = this.move.pos
     }
 
-    if (Math.sqrt((newmove.pos.X - newmove.targetpos.X) * (newmove.pos.X - newmove.targetpos.X) + (newmove.pos.Y - newmove.targetpos.Y) * (newmove.pos.Y - newmove.targetpos.Y)) < 2)
+    var ar = PathShortener.angleRange(newmove, margin)
+
+    var acceptable = true
+    if (ar && this.ar)
+    {
+    var left=PathShortener.isLeftOf(ar.leftMargin,this.ar.leftMargin)?this.ar.leftMargin:ar.leftMargin
+    var right=PathShortener.isLeftOf(ar.rightMargin,this.ar.rightMargin)?ar.rightMargin:this.ar.rightMargin
+    if(PathShortener.isLeftOf(left,right))
+        this.ar={leftMargin:left,rightMargin:right}
+    else
+        acceptable=false
+    }
+    if (!this.ar)
+        this.ar = ar
+
+    if (acceptable)
     {
         this.move = newmove
     }
@@ -220,18 +237,92 @@ PathShortener.prototype.addMove = function(move)
     {
         this.cleanOut()
         this.move = move
+        this.ar=PathShortener.angleRange(move, margin)
     }
 
 }
 
 
 
+PathShortener.angleRange = function(move, margin)
+{
+    var dx = move.targetpos.X - move.pos.X
+    var dy = move.targetpos.Y - move.pos.Y
+
+    var adx = Math.abs(dx)
+    var ady = Math.abs(dy)
+
+    var len = Math.sqrt(adx * adx + ady * ady)
+    if (len <= margin)
+        return //is within the error margin
+
+    var angleMargin = Math.asin(margin / len)
+
+    var ang = adx > ady ? Math.atan(ady / adx) : Math.PI / 2 - Math.atan(adx / ady)
+
+    if (dx <= 0 && dy >= 0)
+        ang = Math.PI - ang
+    else if (dx <= 0 && dy <= 0)
+        ang += Math.PI
+    else if (dx >= 0 && dy <= 0)
+        ang = 2 * Math.PI - ang
+
+    return {leftMargin: ang + angleMargin, rightMargin: ang - angleMargin}
+
+}
+
+
+PathShortener.isLeftOf = function(left, right)
+{
+    var d = left - right
+    while (d < 0)
+        d += 2 * Math.PI
+    while (d > 2 * Math.PI)
+        d -= 2 * Math.PI
+    return(d < Math.PI)
+}
 
 PathShortener.prototype.cleanOut = function()
 {
     if (this.move)
     {
         this.gcm.runSimpleMove(this.move)
-        delete this.move
     }
+    delete this.move
+    delete this.ar
 }
+
+/*
+ PathShortener.prototype.addMove = function(move)
+ {
+ var newmove = {targetpos: move.targetpos, pos: move.pos}
+ 
+ if (this.move)
+ {
+ newmove.pos = this.move.pos
+ }
+ 
+ if (Math.sqrt((newmove.pos.X - newmove.targetpos.X) * (newmove.pos.X - newmove.targetpos.X) + (newmove.pos.Y - newmove.targetpos.Y) * (newmove.pos.Y - newmove.targetpos.Y)) < 2)
+ {
+ this.move = newmove
+ }
+ else
+ {
+ this.cleanOut()
+ this.move = move
+ }
+ 
+ }
+ 
+ 
+ 
+ 
+ PathShortener.prototype.cleanOut = function()
+ {
+ if (this.move)
+ {
+ this.gcm.runSimpleMove(this.move)
+ delete this.move
+ }
+ }
+ */

@@ -3,6 +3,17 @@ function MainCtrl($scope, $http) {
 }
 
 
+function DashboardCtrl()
+{
+    
+}
+
+
+function PreviewCtrl()
+{
+    
+}
+
 
 function HomeCtrl($scope, $document) {
     $scope.process = function() {

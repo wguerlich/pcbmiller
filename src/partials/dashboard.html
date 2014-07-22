@@ -1,0 +1,115 @@
+<div class="row">
+    <div class="col-xs-5">
+
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-xs-3 text-center">
+                        <div class="alert alert-danger" role="alert"><strong>Alarm</strong></div>
+                    </div>
+                    <div class="col-xs-3 text-center">
+                        <strong>X</strong><br>-235.332
+                    </div>
+                    <div class="col-xs-3 text-center">
+                        <strong>Y</strong><br>-235.332
+                    </div>
+                    <div class="col-xs-3 text-center">
+                        <strong>Z</strong><br>-335.332
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row" style="margin-bottom:20px">
+                    <div class="col-xs-9 text-center"><div class="btn btn-success">X,Y <i class="fa fa-arrow-right "></i> 0,0</div></div>
+                    <div class="col-xs-3 text-center">
+                        <div class="btn btn-success">Z <i class="fa fa-arrow-right "></i> 0</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-3"></div>
+                    <div class="col-xs-3 text-center"><div class="btn btn-success">Y+</div></div>
+                    <div class="col-xs-3"></div>
+                    <div class="col-xs-3 text-center"><div class="btn btn-success">Z+</div></div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-3 text-right"><div class="btn btn-success">X-</div></div>
+                    <div class="col-xs-3"></div>
+
+                    <div class="col-xs-3 text-left"><div class="btn btn-success">X+</div></div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-3"></div>
+                    <div class="col-xs-3 text-center"><div class="btn btn-success">Y-</div></div>
+                    <div class="col-xs-3"></div>
+                    <div class="col-xs-3 text-center"><div class="btn btn-success">Z-</div></div>
+                </div>
+
+                <div class="row" style="margin-top:20px">
+                    <div class="col-xs-12 text-center">
+                        <div class="btn-group">
+                            <div class="btn btn-default">0.1mm</div>
+                            <div class="btn btn-default active">1mm</div>
+                            <div class="btn btn-default">10mm</div>
+                            <div class="btn btn-default">50mm</div>
+                        </div>
+                    </div>
+
+                </div> 
+                <div class="row" style="margin-top:10px">
+                    <div class="col-xs-9 text-center"><div class="btn btn-info">X,Y = 0,0</div></div>
+                    <div class="col-xs-3 text-center">
+                        <div class="btn btn-info">Z = 0</div>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:10px">
+                    <div class="col-xs-6 text-center"> <div class="btn-group">
+                            <div class="btn btn-info">STO 1</div>
+                            <div class="btn btn-success">RCL 1</div>
+                        </div>
+                    </div><div class="col-xs-6 text-center"> <div class="btn-group">
+                            <div class="btn btn-info">STO 2</div>
+                            <div class="btn btn-success">RCL 2</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="row" style="margin-bottom:10px">
+                    <div class="col-xs-4 text-center"><div class="btn btn-success btn-block">Home</div></div>
+                    <div class="col-xs-4 text-center"><div class="btn btn-default btn-block">Alarm Off</div></div>
+                    <div class="col-xs-4 text-center"><div class="btn btn-default btn-block">Reset</div></div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-8 text-center"><div class="btn btn-danger btn-lg btn-block">Stop</div></div>
+                    <div class="col-xs-4 text-center"><div class="btn btn-success btn-lg btn-block">Resume</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xs-7"> 
+        <div class="panel panel-default">
+            <div class="panel-body">
+                  <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+    Dropdown
+    <span class="caret"></span>
+  </button>
+<!--<select ng-model="tty_path" ng-options="d.path as d.path for d in devices"></select>-->
+<button class="btn btn-default btn-sm" ng-click="open()">open interface</button>
+            </div>
+        </div>
+        <textarea class="form-control" ng-model="gcode">
+        </textarea>
+        
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div scroll-glue style="height:400px;overflow-y: scroll">
+                    <div ng-repeat="ll in logLines track by $index">{{ll}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

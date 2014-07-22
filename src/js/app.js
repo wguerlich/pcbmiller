@@ -3,16 +3,20 @@ angular.module('main', ['ngRoute', 'ui.bootstrap', 'luegg.directives']).
             function($routeProvider) {
                 $routeProvider.
                         when('/', {
-                            templateUrl: '/partials/home.html',
-                            controller: HomeCtrl
+                            templateUrl: '/partials/dashboard.html',
+                            controller: DashboardCtrl
                         }).
-                        when('/controls', {
-                            templateUrl: '/partials/controls.html',
-                            controller: ControlsCtrl
+                        when('/preview', {
+                            templateUrl: '/partials/preview.html',
+                            controller: PreviewCtrl
                         }).
-                        when('/jog', {
-                            templateUrl: '/partials/jog.html',
-                            controller: JogCtrl
+                        when('/setttings', {
+                            templateUrl: '/partials/settings.html'/*,
+                            controller: JogCtrl*/
+                        }).
+                        when('/help', {
+                            templateUrl: '/partials/help.html'/*,
+                            controller: JogCtrl*/
                         }).
                         otherwise({
                             redirectTo: '/'

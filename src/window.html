@@ -2,6 +2,7 @@
 <html id="ng-app" ng-app="main" ng-csp>
     <head>
         <link rel="stylesheet" type="text/css" href="css/bs-flatly.css">
+        <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
         <script type="text/javascript" src="libs/angular.min.js"></script>
         <script type="text/javascript" src="libs/angular-animate.min.js"></script>
         <script type="text/javascript" src="libs/angular-locale_de-de.js"></script>
@@ -16,12 +17,12 @@
     </head>
     <body ng-controller="MainCtrl">
 
-        <div class="container">
+        <div class="container-fluid">
             <ul class="nav nav-tabs">
-                <li><a href="#/">Home</a></li>
-                <li><a href="#/controls">Controls</a></li>
-                <li><a href="#/jog">Jogs</a></li>
-                <li class="pull-right"><a href="#">Help</a></li>
+                <li><a href="#/">Dashboard</a></li>
+                <li><a href="#/preview">Preview</a></li>
+                <li><a href="#/settings">Settings</a></li>
+                <li class="pull-right"><a href="#/help">Help</a></li>
             </ul>
             <br>
             <div ng-view></div>

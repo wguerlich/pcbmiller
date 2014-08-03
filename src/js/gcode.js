@@ -3,6 +3,7 @@ var GCMachine = function()
     this.maxval = {X: -99999, Y: -99999, Z: -99999}
     this.minval = {X: 99999, Y: 99999, Z: 99999}
     this.handler = null;
+    this.autoleveller=null
     this.reset();
 }
 
@@ -192,7 +193,15 @@ GCMachine.prototype.applyBlock = function() {
 }
 
 GCMachine.prototype.runSimpleMove = function(move) {
-    var l = "G1X" + move.targetpos.X + "Y" + move.targetpos.Y + "Z" + move.targetpos.Z
+    var x=move.targetpos.X
+    var y=move.targetpos.Y
+    var z=move.targetpos.Z
+    if(this.autoleveller)
+    {
+        z+=this.autoleveller.interpolate(x,y)
+    }
+    
+    var l = "G1X" + x.toFixed(3) + "Y" + y.toFixed(3) + "Z" + z.toFixed(3)
     this.lines.push(l)
     if (this.handler)
         this.handler(move)
@@ -203,7 +212,7 @@ var PathShortener = function(gcm)
     this.gcm = gcm
 }
 
-var margin=0.02
+var margin = 0.02
 
 PathShortener.prototype.addMove = function(move)
 {
@@ -219,12 +228,12 @@ PathShortener.prototype.addMove = function(move)
     var acceptable = true
     if (ar && this.ar)
     {
-    var left=PathShortener.isLeftOf(ar.leftMargin,this.ar.leftMargin)?this.ar.leftMargin:ar.leftMargin
-    var right=PathShortener.isLeftOf(ar.rightMargin,this.ar.rightMargin)?ar.rightMargin:this.ar.rightMargin
-    if(PathShortener.isLeftOf(left,right))
-        this.ar={leftMargin:left,rightMargin:right}
-    else
-        acceptable=false
+        var left = PathShortener.isLeftOf(ar.leftMargin, this.ar.leftMargin) ? this.ar.leftMargin : ar.leftMargin
+        var right = PathShortener.isLeftOf(ar.rightMargin, this.ar.rightMargin) ? ar.rightMargin : this.ar.rightMargin
+        if (PathShortener.isLeftOf(left, right))
+            this.ar = {leftMargin: left, rightMargin: right}
+        else
+            acceptable = false
     }
     if (!this.ar)
         this.ar = ar
@@ -237,7 +246,7 @@ PathShortener.prototype.addMove = function(move)
     {
         this.cleanOut()
         this.move = move
-        this.ar=PathShortener.angleRange(move, margin)
+        this.ar = PathShortener.angleRange(move, margin)
     }
 
 }
@@ -292,37 +301,140 @@ PathShortener.prototype.cleanOut = function()
     delete this.ar
 }
 
-/*
- PathShortener.prototype.addMove = function(move)
- {
- var newmove = {targetpos: move.targetpos, pos: move.pos}
- 
- if (this.move)
- {
- newmove.pos = this.move.pos
- }
- 
- if (Math.sqrt((newmove.pos.X - newmove.targetpos.X) * (newmove.pos.X - newmove.targetpos.X) + (newmove.pos.Y - newmove.targetpos.Y) * (newmove.pos.Y - newmove.targetpos.Y)) < 2)
- {
- this.move = newmove
- }
- else
- {
- this.cleanOut()
- this.move = move
- }
- 
- }
- 
- 
- 
- 
- PathShortener.prototype.cleanOut = function()
- {
- if (this.move)
- {
- this.gcm.runSimpleMove(this.move)
- delete this.move
- }
- }
- */
+
+function AutoLeveller()
+{
+    this.grbl = null
+    this.width = 0
+    this.height = 0
+    this.grid = 0
+    this.probes = {}
+    
+       /* this.probes = {"1/1":1,"1/2":2,"2/1":3,"2/2":4} 
+this.widthSteps=2
+    this.widthStep =50
+
+    this.heightSteps = 2
+    this.heightStep = 50*/
+}
+
+AutoLeveller.prototype.runProbing = function()
+{
+    this.widthSteps = Math.floor(this.width / this.grid + 0.8)
+    this.widthStep = this.width / this.widthSteps
+
+    this.heightSteps = Math.floor(this.height / this.grid + 0.8)
+    this.heightStep = this.height / this.heightSteps
+
+    this.xn = 0
+    this.yn = 0
+
+    this.grbl.sendCmd("G90G21") //inch absolut
+    this.grbl.sendCmd("G92X0Y0Z0") //wir sind 0,0,0
+
+    this.nextProbe()
+
+}
+
+AutoLeveller.prototype.nextProbe = function()
+{
+    var x = this.xn * this.widthStep
+    var y = this.yn * this.heightStep
+    var grbl = this.grbl
+    var self = this
+    grbl.sendCmd("G0X" + x.toFixed(3) + "Y" + y.toFixed(3)) //neue Position
+    grbl.sendCmd("G4P0", function() { //auf Idle warten
+        grbl.sendCmd("F10G38.2Z-10", function()
+        {
+            grbl.queryStatus(function()
+            {
+                self.handleProbeResult()
+            })
+        })
+    })
+}
+
+AutoLeveller.prototype.handleProbeResult = function()
+{
+    var z = this.grbl.Z
+
+    this.probes[this.xn + "/" + this.yn] = z
+
+
+    this.grbl.log("Probe height: " + this.grbl.Z)
+    this.grbl.sendCmd("G0Z0")
+    if (++this.yn > this.heightSteps)
+    {
+        this.yn = 0
+        ++this.xn
+    }
+    if (this.xn <= this.widthSteps)
+    {
+        this.nextProbe()
+    }
+}
+
+AutoLeveller.prototype.getProbe = function(x, y)
+{
+    var p = this.probes[x + "/" + y]
+    if (typeof p == "number")
+        return p
+    return 0
+}
+
+AutoLeveller.prototype.interpolate = function(x, y)
+{
+    var xl, xh, yl,yh
+    var xf, yf = 0
+
+    //X-Parameter berechnen
+    var xn = x / this.widthStep
+
+    if (xn <= 0)
+    {
+        xl = xh = 0
+    }
+    else
+    if (xn >= this.widthSteps)
+    {
+        xl = xh = this.widthSteps
+    }
+    else
+    {
+        xl = Math.floor(xn)
+        xh = xl + 1
+        xf = xn - xl
+    }
+
+    //Y-Parameter berechen
+    var yn = y / this.heightStep
+
+    if (yn <= 0)
+    {
+        yl = yh = 0
+    }
+    else
+    if (yn >= this.heightSteps)
+    {
+        yl = yh = this.heightSteps
+    }
+    else
+    {
+        yl = Math.floor(yn)
+        yh = yl + 1
+        yf = yn - yl
+    }
+
+
+    //unteren Wert berechnen
+    var vl = this.getProbe(xl , yl) * (1 - xf) + this.getProbe(xh , yl) * xf
+
+    //oberen Wert berechnen
+    var vh = this.getProbe(xl , yh) * (1 - xf) + this.getProbe(xh , yh) * xf
+
+    //mittleren Wert berechnen
+    var v = vl * (1 - yf) + vh * yf
+
+    return v
+
+}

@@ -6,17 +6,21 @@ angular.module('main', ['ngRoute', 'ui.bootstrap', 'luegg.directives']).
                             templateUrl: '/partials/dashboard.html',
                             controller: DashboardCtrl
                         }).
+                        when('/probing', {
+                            templateUrl: '/partials/probing.html',
+                            controller: ProbingCtrl
+                        }).
                         when('/preview', {
                             templateUrl: '/partials/preview.html',
-                            controller: PreviewCtrl
+                             controller: PreviewCtrl
                         }).
-                        when('/setttings', {
+                        when('/settings', {
                             templateUrl: '/partials/settings.html'/*,
-                            controller: JogCtrl*/
+                             controller: JogCtrl*/
                         }).
                         when('/help', {
                             templateUrl: '/partials/help.html'/*,
-                            controller: JogCtrl*/
+                             controller: JogCtrl*/
                         }).
                         otherwise({
                             redirectTo: '/'
@@ -43,7 +47,11 @@ angular.module('main', ['ngRoute', 'ui.bootstrap', 'luegg.directives']).
                     });
                 }
             };
-        });
+        }).
+        run(function($rootScope)
+        {
+            $rootScope.commands=""
+        })
 
 /*
  //Deutsch als Locale setzen

@@ -3,19 +3,89 @@ function MainCtrl($scope, $http) {
 }
 
 
-function DashboardCtrl()
+function DashboardCtrl($scope, grbl)
 {
-    
+
+    $scope.devices = []
+    $scope.tty_path = ""
+    $scope.grbl = grbl
+    $scope.stepsize = 0.1
+
+    $scope.refreshDevices = function(open)
+    {
+        if (!open)
+            return
+        chrome.serial.getDevices(function(devices)
+        {
+            $scope.devices = devices
+            $scope.$apply()
+        })
+    }
+
+    $scope.openDevice = function(tty_path)
+    {
+        grbl.connect(tty_path)
+
+    }
+
+    $scope.cmdln = function(gcode)
+    {
+        gcode = gcode.replace("%", "" + $scope.stepsize)
+        grbl.sendCmd(gcode)
+    }
+
+    $scope.cmd = function(gcode)
+    {
+
+        grbl.writeSerial(gcode)
+    }
+
+    $scope.reset = function(gcode)
+    {
+
+        grbl.reset()
+    }
+
+    $scope.loadFileContent = function(txt) {
+        $scope.commands = txt;
+    };
+
+    $scope.runCommands = function()
+    {
+        var cmds = $scope.commands.split("\n")
+        for (var i = 0; i < cmds.length; i++)
+        {
+            var cmd = cmds[i].trim()
+            if (cmd.length > 0)
+                grbl.sendCmd(cmd)
+        }
+        $scope.commands = ""
+    }
 }
 
 
-function PreviewCtrl()
+function ProbingCtrl($scope, grbl, $rootScope)
 {
-    
+    $scope.width = 100
+    $scope.height = 100
+    $scope.grid = 5
+
+    $scope.runProbing = function()
+    {
+        var al = new AutoLeveller()
+        $rootScope.autoleveller = al
+        al.grbl = grbl
+        al.width = $scope.width
+        al.height = $scope.height
+        al.grid = $scope.grid
+        al.runProbing()
+    }
 }
 
 
-function HomeCtrl($scope, $document) {
+function PreviewCtrl($scope, $document,$rootScope) {
+    //$rootScope.autoleveller=new AutoLeveller()
+    
     $scope.process = function() {
         var gcm = new GCMachine();
         var inlines = $scope.gcode
@@ -37,16 +107,18 @@ function HomeCtrl($scope, $document) {
 
         gcm.handler = function(move, op) {
             //console.log(JSON.stringify(move))
-            
+
             if (move.pos.Z > 0)
                 return
             context.moveTo((move.pos.X - gcm.minval.X) * zoom + xoff, height - (move.pos.Y - gcm.minval.Y) * zoom - yoff)
             context.lineTo((move.targetpos.X - gcm.minval.X) * zoom + xoff, height - (move.targetpos.Y - gcm.minval.Y) * zoom - yoff)
             context.stroke()
         }
+        var al=$rootScope.autoleveller
+        gcm.autoleveller=al
         gcm.reset()
         gcm.parse(inlines)
-        $scope.outlines=gcm.lines
+        $scope.gcode = gcm.lines.join("\n")
 
     }
 
@@ -100,5 +172,5 @@ function ControlsCtrl($scope, grbl)
 
 function JogCtrl($scope)
 {
-    
+
 }

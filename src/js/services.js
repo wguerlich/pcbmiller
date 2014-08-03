@@ -1,9 +1,11 @@
-angular.module('main').factory('grbl', function($rootScope) {
-    var service = {};
+angular.module('main').factory('grbl', function($rootScope, $interval) {
+    var service = {X:0,Y:0,Z:0};
     var n = 0;
     var inBuf = ""
     var logLines = []
     var connectionId = -1
+    var xxx = 0
+    var statuscallbacks=[]
 
     var options = {
         "bitrate": 115200,
@@ -12,13 +14,16 @@ angular.module('main').factory('grbl', function($rootScope) {
         "parityBit": "no",
         "stopBits": "one"
     };
-
-
+    $interval(function() {
+        if (connectionId >= 0)
+        {
+            writeSerial("?")
+        }
+    }, 200);
     //we expect ASCII-7 rather than UTF-8
     var bytesToString = function(arrbuf) {
         return String.fromCharCode.apply(null, new Uint8Array(arrbuf));
     };
-
     //we expect ASCII-7 rather than UTF-8
     var stringToBytes = function(s) {
         var arrbuf = new ArrayBuffer(s.length);
@@ -31,7 +36,7 @@ angular.module('main').factory('grbl', function($rootScope) {
 
     var consoleLog = function(s)
     {
-        logLines.push(s)
+        logLines.push((xxx++) + " " + s)
         while (logLines.length > 1000)
             logLines.shift()
     }
@@ -47,19 +52,31 @@ angular.module('main').factory('grbl', function($rootScope) {
     var onSend = function(info)
     {
         console.log("sent:\n" + JSON.stringify(info));
+        if (info.error)
+        {
+            closeConnection();
+        }
     }
 
     var writeSerial = function(str) {
         chrome.serial.send(connectionId, stringToBytes(str), onSend);
     }
 
+    var closeConnection = function()
+    {
+        chrome.serial.disconnect(connectionId)
+        connectionId = -1
+    }
+
+
+
     var lineBuf = []
     var bufferLines = []
 
-    var writeLineSerial = function(str)
+    var writeLineSerial = function(str, callback)
     {
         str += "\n"
-        lineBuf.push(str)
+        lineBuf.push({block: str, callback: callback})
         sendBufferIfSpace()
     }
 
@@ -69,17 +86,18 @@ angular.module('main').factory('grbl', function($rootScope) {
         {
             if (lineBuf.length == 0)
                 return
-            if(bufferLines.length>0) return //for now, we need to send lines one by one
+            if (bufferLines.length > 0)
+                return //for now, we need to send lines one by one
             var space = 127
             for (var i = 0; i < bufferLines.length; i++)
             {
-                space -= bufferLines[i].length
+                space -= bufferLines[i].block.length
             }
             console.log("space: " + space + " ql: " + bufferLines.length + " want: " + lineBuf[0].length)
-            if (space >= lineBuf[0].length)
+            if (space >= lineBuf[0].block.length)
             {
                 var line = lineBuf.shift()
-                writeSerial(line)
+                writeSerial(line.block)
                 bufferLines.push(line)
             }
             else
@@ -91,12 +109,36 @@ angular.module('main').factory('grbl', function($rootScope) {
 
     var handleInLine = function(s)
     {
-        consoleLog("< " + s)
-        console.log("line: " + s);
+
+        if (s.substring(0, 1) == "<")
+        {
+            s = s.substring(1, s.length - 2)
+            var f = s.split(",")
+            service.status = f[0]
+            for (var i = 0; i < 3; i++)
+            {
+                var x = f[i + 4]
+                x = x.substring(x.indexOf(":") + 1)
+                service["XYZ".charAt(i)] = parseFloat(x)
+            }
+            for(var i=0;i<statuscallbacks.length;i++)
+            {
+                var cb=statuscallbacks[i]
+                cb();
+            }
+            statuscallbacks=[]
+        }
+        else
+        {
+            consoleLog("< " + s)
+            console.log("line: " + s);
+        }
         if (s.substring(0, 2) == "ok" || s.substring(0, 5) == "error")
         {
             var cmd = bufferLines.shift();
-            consoleLog("* " + cmd + " : " + s)
+            if (cmd.callback)
+                cmd.callback(s)
+            consoleLog("* " + cmd.block + " : " + s)
             sendBufferIfSpace()
         }
 
@@ -116,21 +158,41 @@ angular.module('main').factory('grbl', function($rootScope) {
         })
     })
 
-    var sendCmd = function(s)
+    var sendCmd = function(s, callback)
     {
-        writeLineSerial(s)
+        writeLineSerial(s, callback)
         consoleLog("> " + s)
     }
 
     var queueLen = function()
     {
-        return bufferLines.length
+        return bufferLines.length + lineBuf.length
     }
 
+    var reset = function() {
+
+        lineBuf = []
+        bufferLines = []
+        statuscallbacks=[]
+        writeSerial(String.fromCharCode(24))
+    }
+
+   var queryStatus=function(callback)
+   {
+       statuscallbacks.push(callback)
+       writeSerial("?")
+   }
+
+
+
     service.sendCmd = sendCmd
+    service.writeSerial = writeSerial
     service.logLines = logLines
     service.connect = connect
     service.queueLen = queueLen
-
+    service.reset = reset
+    service.queryStatus=queryStatus
+    service.log=consoleLog
+    
     return service;
 });

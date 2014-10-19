@@ -112,15 +112,15 @@
         <div class="row">
             <div class="col-xs-12">
                 <input type="file" on-read-file="loadFileContent($fileContent)" style="display:inline"/>
-                <button class="btn btn-default btn-sm pull-right" ng-click="commands=''">clear</button>
+                <button class="btn btn-default btn-sm pull-right" ng-click="$root.commands=''">clear</button>
             </div>
         </div>
-        <textarea class="form-control" ng-model="commands" style="margin-top:5px;margin-bottom:5px" placeholder="g-code commands">
+        <textarea class="form-control" ng-model="$root.commands" style="margin-top:5px;margin-bottom:5px" placeholder="g-code commands">
         </textarea>
         <div class="row">
             <div class="col-xs-12">
 
-                <button class="btn btn-success btn-smx" ng-click="runCommands()">&nbsp;&nbsp;<i class="fa fa-play "></i>&nbsp;&nbsp;</button>&nbsp;&nbsp;
+                <button class="btn btn-success btn-sm" ng-click="runCommands()">&nbsp;&nbsp;<i class="fa fa-play "></i>&nbsp;&nbsp;</button>&nbsp;&nbsp;
                 <button class="btn btn-default btn-sm" ng-click="">preview <i class="fa fa-caret-right "></i></button>
                 <button class="btn btn-default btn-sm" ng-click="">probing <i class="fa fa-caret-right "></i></button>
                 <form class="form-inline pull-right">
@@ -131,7 +131,7 @@
                     &nbsp; &nbsp;
                     <span class="checkbox">
                         <label>
-                            <input type="checkbox"/> auto-levelling
+                            <input type="checkbox" ng-model="autolevel"/> auto-levelling
                         </label>
                     </span> &nbsp;
                 </form>

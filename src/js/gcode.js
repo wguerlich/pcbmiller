@@ -3,7 +3,7 @@ var GCMachine = function()
     this.maxval = {X: -99999, Y: -99999, Z: -99999}
     this.minval = {X: 99999, Y: 99999, Z: 99999}
     this.handler = null;
-    this.autoleveller=null
+    this.autoleveller = null
     this.reset();
 }
 
@@ -19,6 +19,9 @@ GCMachine.prototype.reset = function() {
     this.relativeMode = false
     this.moveMode = "G1"
     this.pathShortner = new PathShortener(this);
+    this.vars = {$: function(n) {
+            return this["$" + n]
+        }}
 
 }
 
@@ -28,13 +31,21 @@ GCMachine.prototype.parse = function(input) {
     for (var i = 0; i < lines.length; i++) {
         this.outline = ""
         var line = lines[i] + ";"
+
+        //Variable assignment
+        if (line.charAt(0) == "#")
+        {
+            this.parseAssign(line)
+            continue;
+        }
+
         var numtxt = ""
         var address = ""
         for (var j = 0; j < line.length; j++) {
             var c = line.charAt(j).toUpperCase()
             if ((c >= "A" && c <= "Z") || c == ";" || c == "(" || c == "%") {
                 if (address !== "") {
-                    this.processCmd(address, parseFloat(numtxt.trim()))
+                    this.processCmd(address, this.parseMacro(numtxt))
                     address = ""
                     numtxt = ""
                 }
@@ -63,6 +74,36 @@ GCMachine.prototype.parse = function(input) {
     //this.out.push("min: "+JSON.stringify(this.minval))
     //this.out.push("max: "+JSON.stringify(this.maxval))
     //return this.out
+}
+
+GCMachine.prototype.parseAssign = function(macro)
+{
+    var p = macro.indexOf(";")
+    if (p >= 0)
+        macro = macro.substring(0, p)
+    if (macro.substring(0, 4) == "#50=")
+    {
+        this.vars["$50"] = parseFloat(macro.substring(4).trim())
+    }
+}
+
+GCMachine.prototype.parseMacro = function(macro)
+{
+    macro = macro.trim()
+    if (macro == "[#50+0*#52]")
+    {
+        return  this.vars["$50"]
+    }
+
+
+    /*
+     macro=macro.replace(/#/g,"$").replace(/\[/g,"(").replace(/\]/g,")")
+     macro="with this.vars {"+macro+"}"
+     var v=eval(macro)
+     console.log("macro: " + macro+" value: "+v)
+     return v
+     */
+    return parseFloat(macro)
 }
 
 GCMachine.prototype.processCmd = function(address, num) {
@@ -193,14 +234,14 @@ GCMachine.prototype.applyBlock = function() {
 }
 
 GCMachine.prototype.runSimpleMove = function(move) {
-    var x=move.targetpos.X
-    var y=move.targetpos.Y
-    var z=move.targetpos.Z
-    if(this.autoleveller)
+    var x = move.targetpos.X
+    var y = move.targetpos.Y
+    var z = move.targetpos.Z
+    if (this.autoleveller)
     {
-        z+=this.autoleveller.interpolate(x,y)
+        z += this.autoleveller.interpolate(x, y)
     }
-    
+
     var l = "G1X" + x.toFixed(3) + "Y" + y.toFixed(3) + "Z" + z.toFixed(3)
     this.lines.push(l)
     if (this.handler)
@@ -309,13 +350,13 @@ function AutoLeveller()
     this.height = 0
     this.grid = 0
     this.probes = {}
-    
-       /* this.probes = {"1/1":1,"1/2":2,"2/1":3,"2/2":4} 
-this.widthSteps=2
-    this.widthStep =50
 
-    this.heightSteps = 2
-    this.heightStep = 50*/
+    /* this.probes = {"1/1":1,"1/2":2,"2/1":3,"2/2":4} 
+     this.widthSteps=2
+     this.widthStep =50
+     
+     this.heightSteps = 2
+     this.heightStep = 50*/
 }
 
 AutoLeveller.prototype.runProbing = function()
@@ -384,8 +425,9 @@ AutoLeveller.prototype.getProbe = function(x, y)
 
 AutoLeveller.prototype.interpolate = function(x, y)
 {
-    var xl, xh, yl,yh
-    var xf, yf = 0
+    var xl, xh, yl, yh
+    var xf = 0
+    var yf = 0
 
     //X-Parameter berechnen
     var xn = x / this.widthStep
@@ -427,14 +469,15 @@ AutoLeveller.prototype.interpolate = function(x, y)
 
 
     //unteren Wert berechnen
-    var vl = this.getProbe(xl , yl) * (1 - xf) + this.getProbe(xh , yl) * xf
+    var vl = this.getProbe(xl, yl) * (1 - xf) + this.getProbe(xh, yl) * xf
 
     //oberen Wert berechnen
-    var vh = this.getProbe(xl , yh) * (1 - xf) + this.getProbe(xh , yh) * xf
+    var vh = this.getProbe(xl, yh) * (1 - xf) + this.getProbe(xh, yh) * xf
 
     //mittleren Wert berechnen
     var v = vl * (1 - yf) + vh * yf
 
+    //console.log("x:" + x + " y:" + y + " v:" + v)
     return v
 
 }

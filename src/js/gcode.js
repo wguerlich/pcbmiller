@@ -1,4 +1,4 @@
-var GCMachine = function()
+var GCMachine = function ()
 {
     this.maxval = {X: -99999, Y: -99999, Z: -99999}
     this.minval = {X: 99999, Y: 99999, Z: 99999}
@@ -8,7 +8,7 @@ var GCMachine = function()
 }
 
 
-GCMachine.prototype.reset = function() {
+GCMachine.prototype.reset = function () {
 
     this.pos = {X: 0, Y: 0, Z: 0}
     this.target = {}
@@ -19,13 +19,13 @@ GCMachine.prototype.reset = function() {
     this.relativeMode = false
     this.moveMode = "G1"
     this.pathShortner = new PathShortener(this);
-    this.vars = {$: function(n) {
+    this.vars = {$: function (n) {
             return this["$" + n]
         }}
 
 }
 
-GCMachine.prototype.parse = function(input) {
+GCMachine.prototype.parse = function (input) {
     //this.out = []
     var lines = input.split("\n")
     for (var i = 0; i < lines.length; i++) {
@@ -76,7 +76,7 @@ GCMachine.prototype.parse = function(input) {
     //return this.out
 }
 
-GCMachine.prototype.parseAssign = function(macro)
+GCMachine.prototype.parseAssign = function (macro)
 {
     var p = macro.indexOf(";")
     if (p >= 0)
@@ -87,7 +87,7 @@ GCMachine.prototype.parseAssign = function(macro)
     }
 }
 
-GCMachine.prototype.parseMacro = function(macro)
+GCMachine.prototype.parseMacro = function (macro)
 {
     macro = macro.trim()
     if (macro == "[#50+0*#52]")
@@ -106,11 +106,15 @@ GCMachine.prototype.parseMacro = function(macro)
     return parseFloat(macro)
 }
 
-GCMachine.prototype.processCmd = function(address, num) {
+GCMachine.prototype.processCmd = function (address, num) {
     //console.log(address + ": " + num)
-    if ("XYZIJKR".indexOf(address) >= 0) //alle Positionsangaben 
+    if ("XYZIJKRF".indexOf(address) >= 0) //alle Längenangaben 
     {
         num = Math.floor(num * 1000 * (this.inchMode ? 25.4 : 1) + 0.5) / 1000;
+    }
+
+    if ("XYZIJKR".indexOf(address) >= 0) //alle Positionsangaben 
+    {
         this.target[address] = num
     }
     else
@@ -151,7 +155,7 @@ GCMachine.prototype.processCmd = function(address, num) {
     }
 }
 
-GCMachine.prototype.applyBlock = function() {
+GCMachine.prototype.applyBlock = function () {
 
 
     if (this.target.g92) //change working position
@@ -169,9 +173,12 @@ GCMachine.prototype.applyBlock = function() {
     }
     else
     {
-        var move = {pos: {}, targetpos: {}}
+        var move = {pos: {}, targetpos: {}, isNullMove: function () {
+                return this.pos.X === this.targetpos.X && this.pos.Y === this.targetpos.Y && this.pos.Z === this.targetpos.Z
+            }}
 
         var isSimpleMove = this.moveMode == "G1" && (this.line == "" || this.line == "G1") //simple linear XY feed motion
+        var includeXYZ = (this.moveMode == "G2" || this.moveMode == "G3")
 
         for (var n in "XYZIJKR")
         {
@@ -182,7 +189,6 @@ GCMachine.prototype.applyBlock = function() {
                 move.pos[address] = this.pos[address]
                 move.targetpos[address] = this.pos[address]
             }
-
 
             var num = this.target[address]
 
@@ -201,24 +207,32 @@ GCMachine.prototype.applyBlock = function() {
                         this.minval[address] = num
 
                     if (address == "Z" && this.pos[address] != num)
-                        isSimpleMove = true; //this wasn't in the XY plane
+                        isSimpleMove = false; // true; //this wasn't in the XY plane
 
                     this.pos[address] = num
                     move.targetpos[address] = num
                 }
-                this.line += address + num
+                //this.line += address + num.toFixed(3)
+                this.line+=this.formatCmd(address,num,this.pos.X,this.pos.Y)
+            }
+            else if (includeXYZ && address >= "X" && address <= "Z") //avoid ID:26 error
+            {
+                //this.line += address + this.pos[address].toFixed(3)
+                this.line+=this.formatCmd(address,this.pos[address],this.pos.X,this.pos.Y)
             }
         }
 
-        if (isSimpleMove)
-        {
-            this.pathShortner.addMove(move)
-            this.line = ""
-        }
-        else
-        {
-            if (this.handler)
-                this.handler(move)
+        if (!move.isNullMove()) {
+            if (isSimpleMove)
+            {
+                this.pathShortner.addMove(move)
+                this.line = ""
+            }
+            else
+            {
+                if (this.handler)
+                    this.handler(move)
+            }
         }
 
 
@@ -233,7 +247,17 @@ GCMachine.prototype.applyBlock = function() {
     this.target = {}
 }
 
-GCMachine.prototype.runSimpleMove = function(move) {
+GCMachine.prototype.formatCmd = function (address, num, x, y)
+{
+    if (address == "Z" && this.autoleveller && (this.moveMode == "G1" || this.moveMode == "G2" || this.moveMode == "G3"))
+    {
+        return address + (num + this.autoleveller.interpolate(x, y)).toFixed(3)
+    }
+    else
+        return address + num.toFixed(3)
+}
+
+GCMachine.prototype.runSimpleMove = function (move) {
     var x = move.targetpos.X
     var y = move.targetpos.Y
     var z = move.targetpos.Z
@@ -248,14 +272,14 @@ GCMachine.prototype.runSimpleMove = function(move) {
         this.handler(move)
 }
 
-var PathShortener = function(gcm)
+var PathShortener = function (gcm)
 {
     this.gcm = gcm
 }
 
 var margin = 0.02
 
-PathShortener.prototype.addMove = function(move)
+PathShortener.prototype.addMove = function (move)
 {
     var newmove = {targetpos: move.targetpos, pos: move.pos}
 
@@ -294,7 +318,7 @@ PathShortener.prototype.addMove = function(move)
 
 
 
-PathShortener.angleRange = function(move, margin)
+PathShortener.angleRange = function (move, margin)
 {
     var dx = move.targetpos.X - move.pos.X
     var dy = move.targetpos.Y - move.pos.Y
@@ -322,7 +346,7 @@ PathShortener.angleRange = function(move, margin)
 }
 
 
-PathShortener.isLeftOf = function(left, right)
+PathShortener.isLeftOf = function (left, right)
 {
     var d = left - right
     while (d < 0)
@@ -332,7 +356,7 @@ PathShortener.isLeftOf = function(left, right)
     return(d < Math.PI)
 }
 
-PathShortener.prototype.cleanOut = function()
+PathShortener.prototype.cleanOut = function ()
 {
     if (this.move)
     {
@@ -359,7 +383,7 @@ function AutoLeveller()
      this.heightStep = 50*/
 }
 
-AutoLeveller.prototype.runProbing = function()
+AutoLeveller.prototype.runProbing = function ()
 {
     this.widthSteps = Math.floor(this.width / this.grid + 0.8)
     this.widthStep = this.width / this.widthSteps
@@ -377,17 +401,17 @@ AutoLeveller.prototype.runProbing = function()
 
 }
 
-AutoLeveller.prototype.nextProbe = function()
+AutoLeveller.prototype.nextProbe = function ()
 {
     var x = this.xn * this.widthStep
     var y = this.yn * this.heightStep
     var grbl = this.grbl
     var self = this
     grbl.sendCmd("G0X" + x.toFixed(3) + "Y" + y.toFixed(3)) //neue Position
-    grbl.sendCmd("G4P0", function() { //auf Idle warten
-        grbl.sendCmd("F10G38.2Z-10", function()
+    grbl.sendCmd("G4P0", function () { //auf Idle warten
+        grbl.sendCmd("F10G38.2Z-10", function ()
         {
-            grbl.queryStatus(function()
+            grbl.queryStatus(function ()
             {
                 self.handleProbeResult()
             })
@@ -395,7 +419,7 @@ AutoLeveller.prototype.nextProbe = function()
     })
 }
 
-AutoLeveller.prototype.handleProbeResult = function()
+AutoLeveller.prototype.handleProbeResult = function ()
 {
     var z = this.grbl.Z
 
@@ -415,7 +439,7 @@ AutoLeveller.prototype.handleProbeResult = function()
     }
 }
 
-AutoLeveller.prototype.getProbe = function(x, y)
+AutoLeveller.prototype.getProbe = function (x, y)
 {
     var p = this.probes[x + "/" + y]
     if (typeof p == "number")
@@ -423,7 +447,7 @@ AutoLeveller.prototype.getProbe = function(x, y)
     return 0
 }
 
-AutoLeveller.prototype.interpolate = function(x, y)
+AutoLeveller.prototype.interpolate = function (x, y)
 {
     var xl, xh, yl, yh
     var xf = 0
